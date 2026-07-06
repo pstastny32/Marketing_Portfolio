@@ -21,7 +21,7 @@
   --radius:10px; --shadow:0 2px 12px rgba(74,64,55,.08);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font-body);background:var(--cream);color:var(--charcoal);display:flex;height:100vh;overflow:hidden;font-size:13px}
+body{font-family:var(--font-body);background:var(--cream);color:var(--charcoal);display:flex;flex-direction:column;height:100vh;overflow:hidden;font-size:13px}
 
 /* ── SIDEBAR ─────────────────────────────────────────── */
 .sidebar{width:220px;min-width:220px;background:var(--sidebar);display:flex;flex-direction:column;padding:0;overflow:hidden}
@@ -209,6 +209,16 @@ tr:hover td{background:rgba(131,95,145,.03)}
 <body>
 
 <!-- ── SIDEBAR ─────────────────────────────────────────── -->
+<div style="background:#241C22;display:flex;align-items:center;justify-content:space-between;padding:0 22px;height:50px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08);font-family:'Gotham','Helvetica Neue',Helvetica,Arial,sans-serif">
+  <a href="index.html" style="color:#fff;text-decoration:none;font-family:'HVAuckland',Georgia,serif;font-size:15px">&larr; Payton Stastny · Lifecycle &amp; Loyalty</a>
+  <div style="display:flex;align-items:center;gap:20px">
+    <a href="index.html" style="color:rgba(255,255,255,.82);text-decoration:none;font-size:11px;letter-spacing:.1em;text-transform:uppercase">Portfolio</a>
+    <a href="segment-builder.html" style="color:rgba(255,255,255,.82);text-decoration:none;font-size:11px;letter-spacing:.1em;text-transform:uppercase">Segment Builder</a>
+    <a href="lifecycles.html" style="color:rgba(255,255,255,.82);text-decoration:none;font-size:11px;letter-spacing:.1em;text-transform:uppercase">Three Lifecycles</a>
+    <span style="color:#C99A54;font-size:10px;letter-spacing:.12em;text-transform:uppercase;border:1px solid rgba(201,154,84,.5);padding:4px 9px">Mock data · NDA</span>
+  </div>
+</div>
+<div class="appshell" style="display:flex;flex:1;overflow:hidden;min-height:0">
 <div class="sidebar">
   <div class="sidebar-logo">
     <div class="brand">Scentsy</div>
@@ -233,11 +243,6 @@ tr:hover td{background:rgba(131,95,145,.03)}
   </div>
   <div class="nav-item" onclick="switchTab('tracking',this)">
     <span class="icon">⌖</span> Campaign Tracking <span class="nav-badge">NEW</span>
-  </div>
-
-  <div class="sidebar-section">Setup</div>
-  <div class="nav-item" onclick="switchTab('itreq',this)">
-    <span class="icon">⚙</span> IT Requirements
   </div>
 
   <div class="sidebar-footer">
@@ -271,7 +276,7 @@ tr:hover td{background:rgba(131,95,145,.03)}
          TAB 1 — EXECUTIVE OVERVIEW
     ══════════════════════════════════════════════════ -->
     <div class="tab-panel active" id="tab-overview">
-      <div class="info-banner"><div class="ib-icon">◈</div><div class="ib-text"><strong>What this is, and how I built it</strong>The customer lifecycle dashboard I designed for our CLM reporting in Amazon QuickSight. It scores every customer into a lifecycle stage from Internal Sales, Adobe, and CDP data, then tracks how the base moves between stages, which campaigns advance customers, and the revenue sitting in each stage. I built it spec-first, including the IT Requirements tab, so the team could stand up the real thing. Sample figures shown for the mockup.</div></div>
+      <div class="info-banner"><div class="ib-icon">◈</div><div class="ib-text"><strong>What this is, and how I built it</strong>The customer lifecycle dashboard I designed for our CLM reporting in Amazon QuickSight. It scores every customer into a lifecycle stage from Internal Sales, Adobe, and CDP data, then tracks how the base moves between stages, which campaigns advance customers, and the revenue sitting in each stage. I built it spec-first so the team could stand up the real thing. All numbers shown are mock data, displayed here for NDA reasons.</div></div>
 
       <div class="kpi-grid">
         <div class="kpi-card">
@@ -932,6 +937,7 @@ GROUP BY 1,2,3,4,5
 </div>
 
 <!-- ── STAGE DETAIL MODAL ───────────────────────────── -->
+</div>
 <div class="modal-overlay" id="stageModal">
   <div class="modal">
     <div class="modal-header">
