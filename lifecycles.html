@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Three Lifecycles · Payton Stastny</title>
+<style>
+  :root{
+    --purple:#835F91; --purple-lt:rgba(131,95,145,.06);
+    --warm-dark:#4A4037; --taupe:#6E6259; --taupe-mid:#8A7E75; --taupe-lt:#A59C94;
+    --pale:#CBC4BC; --whisper:#E2DDD8; --white:#FFFFFF; --panel:#FAF8F5; --warm-white:#F7F7F5; --linen:#EEEEEB;
+    --green:#5D6439; --blue:#5B6F99;
+    --shadow:rgba(74,64,55,.07); --shadow-hi:rgba(74,64,55,.14);
+    --font-ui:'Gotham','Helvetica Neue',Helvetica,Arial,sans-serif;
+    --font-display:'HVAuckland',Georgia,'Times New Roman',serif;
+    --maxw:1120px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;color:var(--warm-dark);background-color:var(--warm-white);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    font-family:var(--font-ui);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+  a{color:inherit;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px;}
+  .eyebrow{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--purple);font-weight:700;}
+  h1,h2,h3,h4{margin:0;font-weight:400;}
+  .lead{color:var(--taupe-mid);font-size:16px;max-width:760px;}
+
+  nav{position:sticky;top:0;z-index:200;background:var(--warm-dark);border-bottom:1px solid rgba(255,255,255,.08);}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:58px;gap:16px;}
+  .brand{color:#fff;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;text-decoration:none;white-space:nowrap;}
+  .brand b{color:var(--pale);font-weight:700;}
+  .nav-links{display:flex;gap:22px;flex-wrap:wrap;}
+  .nav-links a{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.72);text-decoration:none;font-weight:600;transition:color .2s;padding:4px 0;border-bottom:2px solid transparent;}
+  .nav-links a:hover{color:#fff;border-bottom-color:var(--purple);}
+  .nav-links a.here{color:#fff;border-bottom-color:var(--purple);}
+  @media(max-width:820px){.nav-links{display:none;}}
+
+  header.hero{position:relative;padding:70px 0 26px;overflow:hidden;}
+  .orb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(80px);z-index:0;}
+  .orb-p{width:420px;height:420px;top:-170px;right:-60px;background:radial-gradient(circle,rgba(131,95,145,.20)0%,transparent 65%);}
+  .hero-inner{position:relative;z-index:1;max-width:820px;}
+  h1.name{font-family:var(--font-display);font-size:clamp(32px,4.8vw,52px);line-height:1.07;letter-spacing:-.02em;}
+  .hero p.pitch{margin-top:18px;color:var(--taupe-mid);font-size:16.5px;max-width:700px;}
+
+  .explain{border-top:1px solid var(--whisper);border-bottom:1px solid var(--whisper);background:var(--panel);}
+  .explain-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;}
+  @media(max-width:820px){.explain-grid{grid-template-columns:1fr;}}
+  .ex{padding:26px 22px;border-left:1px solid var(--whisper);}
+  .ex:first-child{border-left:none;}
+  @media(max-width:820px){.ex{border-left:none;border-top:1px solid var(--whisper);}.ex:first-child{border-top:none;}}
+  .ex h4{font-family:var(--font-display);font-size:17px;color:var(--warm-dark);margin-bottom:6px;}
+  .ex p{margin:0;font-size:13.5px;color:var(--taupe-mid);}
+
+  section{padding:56px 0;}
+  .section-head{margin-bottom:30px;}
+  h2.section{font-family:var(--font-display);font-size:clamp(24px,3.2vw,34px);margin:8px 0 6px;line-height:1.1;}
+
+  /* lanes */
+  .lane{background:var(--white);border:1px solid var(--whisper);box-shadow:0 2px 10px var(--shadow);margin-bottom:16px;overflow:hidden;}
+  .lane-top{display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid var(--whisper);}
+  .lane-dot{width:12px;height:12px;flex:none;}
+  .lane-name{font-family:var(--font-display);font-size:19px;color:var(--warm-dark);}
+  .lane-tag{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe-mid);font-weight:600;margin-left:auto;text-align:right;}
+  .stages{display:flex;align-items:stretch;gap:0;padding:18px 20px;flex-wrap:wrap;}
+  .stage{flex:1;min-width:120px;padding:0 10px;position:relative;}
+  .stage:not(:last-child)::after{content:'›';position:absolute;right:-4px;top:2px;color:var(--pale);font-size:18px;}
+  .stage .sname{font-size:12px;font-weight:700;letter-spacing:.02em;color:var(--warm-dark);}
+  .stage .sdesc{font-size:12px;color:var(--taupe-mid);margin-top:4px;}
+  @media(max-width:640px){.stage{flex:100%;min-width:0;padding:8px 0;border-top:1px dashed var(--whisper);}.stage:not(:last-child)::after{display:none;}.stage:first-child{border-top:none;}}
+
+  /* connections */
+  .conns{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  @media(max-width:820px){.conns{grid-template-columns:1fr;}}
+  .conn{background:var(--white);border:1px solid var(--whisper);box-shadow:0 2px 10px var(--shadow);padding:20px;transition:transform .22s,box-shadow .22s;}
+  .conn:hover{transform:translateY(-4px);box-shadow:0 14px 36px var(--shadow-hi);}
+  .conn .flow{font-family:var(--font-display);font-size:15px;color:var(--warm-dark);margin-bottom:8px;}
+  .conn .flow b{color:var(--purple);}
+  .conn p{margin:0;font-size:13.5px;color:var(--taupe-mid);}
+
+  /* foundation */
+  .foundation{background:var(--warm-dark);color:#fff;padding:26px 24px;margin-top:22px;}
+  .foundation .flabel{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--pale);font-weight:700;margin-bottom:14px;}
+  .fbits{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  @media(max-width:820px){.fbits{grid-template-columns:1fr;}}
+  .fbit{border:1px solid rgba(255,255,255,.16);padding:16px;}
+  .fbit b{font-family:var(--font-display);font-size:16px;display:block;margin-bottom:4px;}
+  .fbit span{font-size:12.5px;color:rgba(255,255,255,.7);}
+
+  .seg-callout{background:var(--purple-lt);border-left:3px solid var(--purple);padding:22px 24px;margin-top:8px;}
+  .seg-callout .k{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--purple);font-weight:700;margin-bottom:8px;}
+  .seg-callout p{margin:0;font-size:15px;color:var(--taupe);max-width:820px;}
+  .seg-callout b{color:var(--warm-dark);font-weight:600;}
+
+  footer{border-top:1px solid var(--whisper);padding:26px 0;color:var(--taupe-lt);font-size:11px;letter-spacing:.12em;text-transform:uppercase;text-align:center;}
+  .band{background:var(--linen);}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-inner">
+    <a href="index.html" class="brand">Payton Stastny&nbsp;<b>/</b>&nbsp;Lifecycle &amp; Loyalty</a>
+    <div class="nav-links">
+      <a href="index.html">Portfolio</a>
+      <a href="segment-builder.html">Segment Builder</a>
+      <a href="lifecycles.html" class="here">Three Lifecycles</a>
+      <a href="dashboard.html">Dashboard</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="orb orb-p"></div>
+  <div class="wrap hero-inner">
+    <div class="eyebrow">The operating model</div>
+    <h1 class="name">Three lifecycles,<br>one connected person.</h1>
+    <p class="pitch">We don't serve one audience, we serve three: the customer who buys, the consultant who sells, and the creator who refers. Each needs its own lifecycle, but the real value is in connecting them, so a person's history and worth follow them as they move between roles. This is the model I've been building.</p>
+  </div>
+</header>
+
+<div class="explain">
+  <div class="wrap explain-grid">
+    <div class="ex">
+      <h4>What it is</h4>
+      <p>Three parallel lifecycles (customer, consultant, creator) that share one identity and one loyalty engine, so we manage the whole relationship, not three disconnected ones.</p>
+    </div>
+    <div class="ex">
+      <h4>How I built it</h4>
+      <p>Mapped every touchpoint and vendor per audience, unified them on a shared customer profile in our CDP, built the journeys in Customer.io, and ran the rewards through Talon.One.</p>
+    </div>
+    <div class="ex">
+      <h4>Why it matters</h4>
+      <p>A happy customer can become a seller. A creator drives new customers. When the lifecycles connect, each one makes the others stronger instead of competing for the same person.</p>
+    </div>
+  </div>
+</div>
+
+<!-- LANES -->
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">The three lifecycles</div>
+      <h2 class="section">Each audience, its own journey</h2>
+      <p class="lead">Same backbone, different motion. Every lane runs acquire, onboard, engage, retain, and win-back, tuned to what that audience actually does.</p>
+    </div>
+
+    <div class="lane">
+      <div class="lane-top"><span class="lane-dot" style="background:var(--purple)"></span><span class="lane-name">Customer</span><span class="lane-tag">The person who buys</span></div>
+      <div class="stages">
+        <div class="stage"><div class="sname">Acquire</div><div class="sdesc">First purchase, from any channel</div></div>
+        <div class="stage"><div class="sname">Onboard</div><div class="sdesc">Welcome series, product + loyalty education</div></div>
+        <div class="stage"><div class="sname">Engage</div><div class="sdesc">Repeat purchase, category expansion</div></div>
+        <div class="stage"><div class="sname">Retain</div><div class="sdesc">Loyalty rewards, recognition</div></div>
+        <div class="stage"><div class="sname">Win-back</div><div class="sdesc">Personalized re-engagement</div></div>
+      </div>
+    </div>
+
+    <div class="lane">
+      <div class="lane-top"><span class="lane-dot" style="background:var(--green)"></span><span class="lane-name">Consultant</span><span class="lane-tag">The person who sells</span></div>
+      <div class="stages">
+        <div class="stage"><div class="sname">Recruit</div><div class="sdesc">Join, often from a happy customer</div></div>
+        <div class="stage"><div class="sname">Ramp</div><div class="sdesc">Onboarding, first-sale enablement</div></div>
+        <div class="stage"><div class="sname">Grow</div><div class="sdesc">Tools, tiers, better offers to pass on</div></div>
+        <div class="stage"><div class="sname">Retain</div><div class="sdesc">Recognition, performance rewards</div></div>
+        <div class="stage"><div class="sname">Reactivate</div><div class="sdesc">Re-engage lapsed sellers</div></div>
+      </div>
+    </div>
+
+    <div class="lane">
+      <div class="lane-top"><span class="lane-dot" style="background:var(--blue)"></span><span class="lane-name">Creator</span><span class="lane-tag">The person who refers</span></div>
+      <div class="stages">
+        <div class="stage"><div class="sname">Discover</div><div class="sdesc">TikTok + affiliate sign-up</div></div>
+        <div class="stage"><div class="sname">Activate</div><div class="sdesc">First content, first tracked link</div></div>
+        <div class="stage"><div class="sname">Amplify</div><div class="sdesc">Reward what actually converts</div></div>
+        <div class="stage"><div class="sname">Retain</div><div class="sdesc">Keep top creators posting</div></div>
+        <div class="stage"><div class="sname">Reactivate</div><div class="sdesc">Win back gone-quiet creators</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONNECTIONS -->
+<section class="band">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">The part that matters</div>
+      <h2 class="section">How the three connect</h2>
+      <p class="lead">Run in isolation, they compete for the same person. Connected, each one feeds the next.</p>
+    </div>
+    <div class="conns">
+      <div class="conn">
+        <div class="flow">Customer <b>&rarr;</b> Consultant</div>
+        <p>The best sellers often start as loyal customers. When someone hits the signals, the customer journey hands off to a recruit invite instead of just another promo.</p>
+      </div>
+      <div class="conn">
+        <div class="flow">Creator <b>&rarr;</b> Customer</div>
+        <p>Creators bring new customers in at the top of the funnel. Their referrals enter the customer lifecycle tagged to the creator, so we can credit and reward what converts.</p>
+      </div>
+      <div class="conn">
+        <div class="flow">Consultant <b>&uarr;</b> Customer offers</div>
+        <p>When a consultant performs, their customers unlock better offers. The seller earns more, the customer spends more, and the two lifecycles reinforce each other.</p>
+      </div>
+    </div>
+
+    <div class="foundation">
+      <div class="flabel">Under all three</div>
+      <div class="fbits">
+        <div class="fbit"><b>One identity</b><span>A shared customer profile in the CDP ties a person's activity together, even as they play more than one role.</span></div>
+        <div class="fbit"><b>One loyalty engine</b><span>Talon.One runs the points, tiers, and rewards across every audience instead of three separate systems.</span></div>
+        <div class="fbit"><b>One measurement layer</b><span>Adobe Analytics and incrementality testing, so we know which connection actually drove value.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SEG PARALLEL -->
+<section>
+  <div class="wrap">
+    <div class="seg-callout">
+      <div class="k">Why this maps to a cross-property loyalty program</div>
+      <p>This is the same problem a company with multiple properties has to solve: <b>tie a person together across everything they touch, under one identity, so points and status follow them.</b> I've been living this exact challenge, connecting three audiences across many vendors and platforms into one view. Different logos, identical problem.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="wrap">Payton Stastny · Program Manager, Marketing · Selected Work</footer>
+</body>
+</html>
