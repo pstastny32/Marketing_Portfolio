@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>Customer Lifecycle Dashboard · Payton Stastny</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --berry:#835F91; --berry-dark:#5A4368; --berry-light:#9A79A6;
+  --rose:#A2867F; --gold:#B57F2E; --gold-light:#D4AC63;
+  --cream:#F7F7F5; --cream-dark:#EEEEEB;
+  --sidebar:#241C22; --sidebar-hover:#33272F;
+  --white:#FFFFFF; --charcoal:#4A4037; --mid:#6E6259; --light:#A59C94;
+  --success:#5D6439; --warning:#B57F2E; --danger:#9A4A40; --info:#5B6F99;
+  --border:#E2DDD8;
+  --ds:#835F91; --b2c:#5B6F99;
+  --font-body:'Gotham','Helvetica Neue',Helvetica,Arial,sans-serif; --font-display:'HVAuckland',Georgia,'Times New Roman',serif;
+  --radius:10px; --shadow:0 2px 12px rgba(74,64,55,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);background:var(--cream);color:var(--charcoal);display:flex;height:100vh;overflow:hidden;font-size:13px}
+
+/* ── SIDEBAR ─────────────────────────────────────────── */
+.sidebar{width:220px;min-width:220px;background:var(--sidebar);display:flex;flex-direction:column;padding:0;overflow:hidden}
+.sidebar-logo{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.07)}
+.sidebar-logo .brand{font-family:var(--font-display);font-size:18px;color:var(--white);letter-spacing:.5px}
+.sidebar-logo .sub{font-size:10px;color:var(--rose);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px}
+.sidebar-section{padding:18px 14px 6px;font-size:9px;color:rgba(255,255,255,.3);letter-spacing:2px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;color:rgba(255,255,255,.55);transition:.2s;border-left:3px solid transparent;font-size:12.5px;font-weight:500}
+.nav-item:hover{background:var(--sidebar-hover);color:rgba(255,255,255,.85)}
+.nav-item.active{background:var(--sidebar-hover);color:var(--white);border-left-color:var(--gold)}
+.nav-item .icon{font-size:14px;width:18px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--berry);color:#fff;font-size:9px;padding:1px 6px;border-radius:10px;font-weight:600}
+.sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid rgba(255,255,255,.07)}
+.sidebar-footer .refresh{font-size:10px;color:rgba(255,255,255,.3)}
+.sidebar-footer .dot{display:inline-block;width:6px;height:6px;background:#5D6439;border-radius:50%;margin-right:5px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── MAIN CONTENT ────────────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:52px;flex-shrink:0}
+.topbar-title{font-size:16px;font-weight:600;color:var(--charcoal)}
+.topbar-sub{font-size:11px;color:var(--mid);margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.filter-pill{display:flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid var(--border);border-radius:20px;font-size:11px;color:var(--mid);cursor:pointer;background:var(--cream);transition:.15s}
+.filter-pill:hover{border-color:var(--berry);color:var(--berry)}
+.filter-pill.active{background:var(--berry);color:#fff;border-color:var(--berry)}
+select{padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;font-family:var(--font-body);color:var(--charcoal);background:var(--cream);cursor:pointer}
+.content{flex:1;overflow-y:auto;padding:20px 24px}
+
+/* ── TABS ────────────────────────────────────────────── */
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* ── KPI CARDS ───────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px}
+.kpi-card{background:var(--white);border-radius:var(--radius);padding:16px 18px;border:1px solid var(--border);position:relative;overflow:hidden}
+.kpi-card .accent-bar{position:absolute;top:0;left:0;right:0;height:3px}
+.kpi-label{font-size:10px;color:var(--mid);text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.kpi-value{font-size:28px;font-weight:700;color:var(--charcoal);margin:6px 0 4px;line-height:1}
+.kpi-delta{font-size:11px;font-weight:600}
+.kpi-delta.up{color:var(--success)}.kpi-delta.down{color:var(--danger)}
+.kpi-sub{font-size:10px;color:var(--light);margin-top:2px}
+
+/* ── SECTION HEADERS ─────────────────────────────────── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.section-title{font-size:13px;font-weight:600;color:var(--charcoal);display:flex;align-items:center;gap:7px}
+.section-title::before{content:'';display:inline-block;width:3px;height:14px;background:var(--berry);border-radius:2px}
+
+/* ── CHART CARDS ─────────────────────────────────────── */
+.chart-row{display:grid;gap:14px;margin-bottom:20px}
+.chart-row-2{grid-template-columns:1fr 1fr}
+.chart-row-3{grid-template-columns:2fr 1fr 1fr}
+.chart-row-65{grid-template-columns:65fr 35fr}
+.chart-card{background:var(--white);border-radius:var(--radius);padding:18px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.chart-card h4{font-size:12px;font-weight:600;color:var(--charcoal);margin-bottom:14px}
+.chart-wrap{position:relative}
+
+/* ── STAGE GRID ──────────────────────────────────────── */
+.stage-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.stage-card{background:var(--white);border-radius:var(--radius);padding:14px;border:1px solid var(--border);border-top:4px solid var(--berry);cursor:pointer;transition:.2s;position:relative}
+.stage-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(131,95,145,.12)}
+.stage-card.re-engagement{border-top-color:var(--gold)}
+.stage-card.reactive{border-top-color:var(--success)}
+.stage-name{font-size:12px;font-weight:700;color:var(--berry);margin-bottom:8px}
+.stage-card.re-engagement .stage-name{color:var(--gold)}
+.stage-card.reactive .stage-name{color:var(--success)}
+.stage-metric{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.sm-label{font-size:10px;color:var(--mid)}
+.sm-value{font-size:12px;font-weight:600;color:var(--charcoal)}
+.stage-count-big{font-size:22px;font-weight:700;color:var(--charcoal);margin-bottom:6px}
+.stage-bar{height:3px;background:var(--cream-dark);border-radius:2px;margin-top:8px}
+.stage-bar-fill{height:100%;border-radius:2px;background:var(--berry)}
+.stage-card.re-engagement .stage-bar-fill{background:var(--gold)}
+.stage-card.reactive .stage-bar-fill{background:var(--success)}
+
+/* ── TABLE ───────────────────────────────────────────── */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:8px 12px;font-size:10px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.8px;border-bottom:2px solid var(--border);background:var(--cream)}
+td{padding:9px 12px;font-size:12px;border-bottom:1px solid var(--border);color:var(--charcoal)}
+tr:hover td{background:rgba(131,95,145,.03)}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.badge-ds{background:rgba(131,95,145,.1);color:var(--berry)}
+.badge-b2c{background:rgba(91,111,153,.1);color:var(--info)}
+.badge-mixed{background:rgba(181,127,46,.1);color:var(--gold)}
+.trend-up{color:var(--success);font-weight:600}
+.trend-dn{color:var(--danger);font-weight:600}
+
+/* ── CHANNEL SPLIT ───────────────────────────────────── */
+.channel-bar{display:flex;height:28px;border-radius:6px;overflow:hidden;margin:8px 0}
+.ch-ds{background:var(--ds);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600;transition:.3s}
+.ch-b2c{background:var(--b2c);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600;transition:.3s}
+.channel-legend{display:flex;gap:16px;margin-top:6px}
+.cl-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mid)}
+.cl-dot{width:10px;height:10px;border-radius:2px}
+
+/* ── FLOW DIAGRAM ────────────────────────────────────── */
+.flow-grid{display:grid;grid-template-columns:1fr 60px 1fr;gap:0;align-items:start;margin-bottom:16px}
+.flow-stage{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin:3px 0}
+.flow-from{border-left:4px solid var(--berry)}
+.flow-to{border-left:4px solid var(--success)}
+.flow-arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--berry);font-size:18px}
+.flow-label{font-size:11px;font-weight:600;color:var(--charcoal)}
+.flow-count{font-size:10px;color:var(--mid);margin-top:2px}
+.flow-arrow-num{font-size:10px;color:var(--gold);font-weight:600}
+
+/* ── CAMPAIGN TABLE ──────────────────────────────────── */
+.mini-bar{height:6px;background:var(--cream-dark);border-radius:3px;overflow:hidden;width:80px;display:inline-block;vertical-align:middle;margin-left:6px}
+.mini-bar-fill{height:100%;border-radius:3px;background:var(--berry)}
+
+/* ── TRACKING LINK SECTION ───────────────────────────── */
+.track-input-row{display:flex;gap:10px;margin-bottom:20px}
+.track-input{flex:1;padding:10px 16px;border:2px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font-body);transition:.2s}
+.track-input:focus{outline:none;border-color:var(--berry);box-shadow:0 0 0 3px rgba(131,95,145,.1)}
+.btn{padding:10px 20px;border-radius:8px;border:none;cursor:pointer;font-family:var(--font-body);font-weight:600;font-size:13px;transition:.2s}
+.btn-primary{background:var(--berry);color:#fff}.btn-primary:hover{background:var(--berry-dark)}
+.btn-secondary{background:var(--cream-dark);color:var(--charcoal);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--border)}
+.track-results{display:none}
+.track-results.show{display:block}
+.track-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+
+/* ── IT REQUIREMENTS ─────────────────────────────────── */
+.req-section{background:var(--white);border-radius:var(--radius);padding:20px;border:1px solid var(--border);margin-bottom:16px}
+.req-section h3{font-size:14px;font-weight:700;color:var(--berry);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.req-section h4{font-size:12px;font-weight:600;color:var(--charcoal);margin:12px 0 6px}
+.req-item{display:flex;gap:10px;margin-bottom:6px;font-size:12px;line-height:1.5}
+.req-item::before{content:'→';color:var(--berry);font-weight:700;flex-shrink:0;margin-top:1px}
+.req-tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;margin-right:4px}
+.tag-internal{background:#E8F4EA;color:var(--success)}
+.tag-adobe{background:#FCE8E6;color:#9A4A40}
+.tag-cdp{background:#E6EEF7;color:var(--info)}
+.tag-qs{background:#FFF3E0;color:var(--gold)}
+.tag-new{background:rgba(131,95,145,.1);color:var(--berry)}
+.code-block{background:var(--sidebar);color:#A8D8B8;padding:12px 16px;border-radius:6px;font-size:11px;font-family:'Courier New',monospace;margin:8px 0;line-height:1.6}
+
+/* ── MOVEMENT MATRIX ─────────────────────────────────── */
+.matrix-wrap{overflow-x:auto}
+.matrix-table th,.matrix-table td{text-align:center;padding:6px 8px;font-size:11px;min-width:80px}
+.matrix-table .row-label{text-align:left;font-weight:600;color:var(--berry);background:rgba(131,95,145,.05)}
+.matrix-cell{border-radius:4px;padding:4px 6px;font-weight:600}
+.heat-0{background:transparent;color:var(--light)}
+.heat-1{background:rgba(131,95,145,.08);color:var(--berry)}
+.heat-2{background:rgba(131,95,145,.18);color:var(--berry)}
+.heat-3{background:rgba(131,95,145,.32);color:#fff}
+.heat-4{background:rgba(131,95,145,.55);color:#fff}
+.heat-5{background:var(--berry);color:#fff}
+
+/* ── SCROLLBAR ───────────────────────────────────────── */
+.content::-webkit-scrollbar{width:6px}
+.content::-webkit-scrollbar-track{background:transparent}
+.content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── TOOLTIP ─────────────────────────────────────────── */
+.tooltip-box{background:var(--sidebar);color:#fff;padding:8px 12px;border-radius:6px;font-size:11px;line-height:1.5;box-shadow:0 4px 20px rgba(74,64,55,.2)}
+
+/* ── INFO BANNER ─────────────────────────────────────── */
+.info-banner{background:linear-gradient(135deg,var(--berry),var(--berry-light));color:#fff;border-radius:var(--radius);padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px}
+.info-banner .ib-icon{font-size:20px}
+.info-banner .ib-text{font-size:12px;line-height:1.5}
+.info-banner .ib-text strong{display:block;margin-bottom:2px;font-size:13px}
+
+/* ── STAGE DETAIL MODAL ──────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(74,64,55,.5);z-index:100;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--white);border-radius:12px;width:700px;max-height:80vh;overflow-y:auto;padding:28px}
+.modal-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--mid)}
+
+/* ── RESPONSIVE TABS ─────────────────────────────────── */
+.topbar-tabs{display:flex;gap:0;margin-left:24px}
+.ttab{padding:16px 16px;font-size:12px;font-weight:500;cursor:pointer;color:var(--mid);border-bottom:3px solid transparent;transition:.15s;white-space:nowrap}
+.ttab:hover{color:var(--charcoal)}
+.ttab.active{color:var(--berry);border-bottom-color:var(--berry);font-weight:600}
+
+/* ── ANIMATIONS ──────────────────────────────────────── */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.tab-panel.active{animation:fadeIn .25s ease}
+.count-up{display:inline-block}
+
+/* ── COMPARISON TOGGLE ───────────────────────────────── */
+.toggle-row{display:flex;background:var(--cream-dark);border-radius:8px;padding:3px;gap:2px;width:fit-content}
+.toggle-btn{padding:5px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;color:var(--mid);border:none;background:none;font-family:var(--font-body);transition:.15s}
+.toggle-btn.active{background:var(--white);color:var(--berry);box-shadow:0 1px 4px rgba(74,64,55,.1)}
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ─────────────────────────────────────────── -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">Scentsy</div>
+    <div class="sub">Lifecycle Intelligence</div>
+  </div>
+
+  <a class="nav-item" href="index.html" style="text-decoration:none"><span class="icon">←</span> Back to Portfolio</a>
+  <div class="sidebar-section">Overview</div>
+  <div class="nav-item active" onclick="switchTab('overview',this)">
+    <span class="icon">◈</span> Executive Overview
+  </div>
+  <div class="nav-item" onclick="switchTab('stages',this)">
+    <span class="icon">⬡</span> Lifecycle Stages
+  </div>
+
+  <div class="sidebar-section">Analysis</div>
+  <div class="nav-item" onclick="switchTab('movement',this)">
+    <span class="icon">⇄</span> Customer Movement
+  </div>
+  <div class="nav-item" onclick="switchTab('channel',this)">
+    <span class="icon">⊕</span> Channel & Campaign
+  </div>
+  <div class="nav-item" onclick="switchTab('tracking',this)">
+    <span class="icon">⌖</span> Campaign Tracking <span class="nav-badge">NEW</span>
+  </div>
+
+  <div class="sidebar-section">Setup</div>
+  <div class="nav-item" onclick="switchTab('itreq',this)">
+    <span class="icon">⚙</span> IT Requirements
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="refresh"><span class="dot"></span> Live · Last refresh 2:14 AM</div>
+    <div style="font-size:10px;color:rgba(255,255,255,.2);margin-top:4px">Amazon QuickSight · v1.0</div>
+  </div>
+</div>
+
+<!-- ── MAIN ────────────────────────────────────────────── -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="page-title">Executive Overview</div>
+      <div class="topbar-sub">Customer Lifecycle Dashboard · Internal Sales + Adobe + CDP</div>
+    </div>
+    <div class="topbar-right">
+      <div class="filter-pill active" onclick="setRange(this,'30')">30D</div>
+      <div class="filter-pill" onclick="setRange(this,'90')">90D</div>
+      <div class="filter-pill" onclick="setRange(this,'ytd')">YTD</div>
+      <select id="channel-filter" onchange="applyChannelFilter(this.value)">
+        <option value="all">All Channels</option>
+        <option value="ds">Direct Sales Only</option>
+        <option value="b2c">B2C Only</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 1 — EXECUTIVE OVERVIEW
+    ══════════════════════════════════════════════════ -->
+    <div class="tab-panel active" id="tab-overview">
+      <div class="info-banner"><div class="ib-icon">◈</div><div class="ib-text"><strong>What this is, and how I built it</strong>The customer lifecycle dashboard I designed for our CLM reporting in Amazon QuickSight. It scores every customer into a lifecycle stage from Internal Sales, Adobe, and CDP data, then tracks how the base moves between stages, which campaigns advance customers, and the revenue sitting in each stage. I built it spec-first, including the IT Requirements tab, so the team could stand up the real thing. Sample figures shown for the mockup.</div></div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="accent-bar" style="background:var(--berry)"></div>
+          <div class="kpi-label">Total Customers</div>
+          <div class="kpi-value" id="kpi-total">850K</div>
+          <div class="kpi-delta up">▲ 4.2% vs prior period</div>
+          <div class="kpi-sub">All lifecycle stages</div>
+        </div>
+        <div class="kpi-card">
+          <div class="accent-bar" style="background:var(--success)"></div>
+          <div class="kpi-label">Loyal Customers</div>
+          <div class="kpi-value" style="color:var(--success)">43K</div>
+          <div class="kpi-delta up">▲ 7.1% vs prior period</div>
+          <div class="kpi-sub">5.1% of total base</div>
+        </div>
+        <div class="kpi-card">
+          <div class="accent-bar" style="background:var(--info)"></div>
+          <div class="kpi-label">Revenue (Period)</div>
+          <div class="kpi-value" style="color:var(--info)">$8.3M</div>
+          <div class="kpi-delta up">▲ 3.8% vs prior period</div>
+          <div class="kpi-sub">Active stages only</div>
+        </div>
+        <div class="kpi-card">
+          <div class="accent-bar" style="background:var(--warning)"></div>
+          <div class="kpi-label">At Risk</div>
+          <div class="kpi-value" style="color:var(--warning)">112K</div>
+          <div class="kpi-delta down">▼ 2.1% vs prior period</div>
+          <div class="kpi-sub">Need re-engagement action</div>
+        </div>
+        <div class="kpi-card">
+          <div class="accent-bar" style="background:var(--rose)"></div>
+          <div class="kpi-label">Avg Cart Value</div>
+          <div class="kpi-value" style="color:var(--rose)">$67</div>
+          <div class="kpi-delta up">▲ 1.4% vs prior period</div>
+          <div class="kpi-sub">Active customers only</div>
+        </div>
+      </div>
+
+      <div class="chart-row chart-row-65">
+        <div class="chart-card">
+          <div class="section-header">
+            <div class="section-title">Customer Stage Distribution</div>
+            <div class="toggle-row">
+              <button class="toggle-btn active" onclick="toggleDistView('count',this)">Count</button>
+              <button class="toggle-btn" onclick="toggleDistView('revenue',this)">Revenue</button>
+            </div>
+          </div>
+          <div class="chart-wrap" style="height:220px"><canvas id="stageDistChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="section-header"><div class="section-title">Stage Mix</div></div>
+          <div class="chart-wrap" style="height:220px"><canvas id="stagePieChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="chart-row chart-row-2">
+        <div class="chart-card">
+          <div class="section-header">
+            <div class="section-title">Loyalty Growth Trend</div>
+          </div>
+          <div class="chart-wrap" style="height:180px"><canvas id="loyaltyTrendChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="section-header"><div class="section-title">Channel Split</div></div>
+          <div style="margin-top:8px">
+            <div style="font-size:11px;color:var(--mid);margin-bottom:4px">New Customer Acquisition</div>
+            <div class="channel-bar"><div class="ch-ds" style="width:68%">DS 68%</div><div class="ch-b2c" style="width:32%">B2C 32%</div></div>
+            <div style="font-size:11px;color:var(--mid);margin:10px 0 4px">Loyal Stage</div>
+            <div class="channel-bar"><div class="ch-ds" style="width:78%">DS 78%</div><div class="ch-b2c" style="width:22%">B2C 22%</div></div>
+            <div style="font-size:11px;color:var(--mid);margin:10px 0 4px">Revenue Contribution</div>
+            <div class="channel-bar"><div class="ch-ds" style="width:72%">DS 72%</div><div class="ch-b2c" style="width:28%">B2C 28%</div></div>
+            <div class="channel-legend">
+              <div class="cl-item"><div class="cl-dot" style="background:var(--ds)"></div>Direct Sales</div>
+              <div class="cl-item"><div class="cl-dot" style="background:var(--b2c)"></div>B2C / Direct</div>
+            </div>
+          </div>
+          <div style="margin-top:14px">
+            <div class="chart-wrap" style="height:100px"><canvas id="channelTrendChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 2 — LIFECYCLE STAGES
+    ══════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-stages">
+
+      <div class="info-banner">
+        <div class="ib-icon">⬡</div>
+        <div class="ib-text">
+          <strong>Acquisition & Growth Track</strong>
+          Click any stage card to drill into customer-level detail. Metrics refresh nightly from Internal Sales, Adobe, and CDP data sources.
+        </div>
+      </div>
+
+      <div class="stage-grid">
+        <div class="stage-card" onclick="openStageModal('Unknown')">
+          <div class="stage-name">Unknown</div>
+          <div class="stage-count-big">125K</div>
+          <div class="stage-metric"><span class="sm-label">No email / No purchase</span></div>
+          <div class="stage-metric"><span class="sm-label">Revenue</span><span class="sm-value">—</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg Cart</span><span class="sm-value">—</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg CFV</span><span class="sm-value">—</span></div>
+          <div class="stage-bar"><div class="stage-bar-fill" style="width:15%"></div></div>
+          <div style="font-size:9px;color:var(--light);margin-top:4px">15% of total base</div>
+        </div>
+        <div class="stage-card" onclick="openStageModal('Known')">
+          <div class="stage-name">Known</div>
+          <div class="stage-count-big">210K</div>
+          <div class="stage-metric"><span class="sm-label">Email on file · No purchase</span></div>
+          <div class="stage-metric"><span class="sm-label">Revenue</span><span class="sm-value">—</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg Cart</span><span class="sm-value">—</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg CFV</span><span class="sm-value">—</span></div>
+          <div class="stage-bar"><div class="stage-bar-fill" style="width:25%"></div></div>
+          <div style="font-size:9px;color:var(--light);margin-top:4px">25% of total base</div>
+        </div>
+        <div class="stage-card" onclick="openStageModal('1st Purchase')">
+          <div class="stage-name">1st Purchase</div>
+          <div class="stage-count-big">89K</div>
+          <div class="stage-metric"><span class="sm-label">1st order within 6 months</span></div>
+          <div class="stage-metric"><span class="sm-label">Revenue</span><span class="sm-value">$12.4M</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg Cart $</span><span class="sm-value">$58</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg CFV</span><span class="sm-value">$82</span></div>
+          <div class="stage-bar"><div class="stage-bar-fill" style="width:10.5%"></div></div>
+          <div style="font-size:9px;color:var(--light);margin-top:4px">10.5% of total base</div>
+        </div>
+        <div class="stage-card" onclick="openStageModal('Repeat Purchase')">
+          <div class="stage-name">Repeat Purchase</div>
+          <div class="stage-count-big">187K</div>
+          <div class="stage-metric"><span class="sm-label">2 orders / CFV &lt;$700</span></div>
+          <div class="stage-metric"><span class="sm-label">Revenue</span><span class="sm-value">$38.7M</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg Cart $</span><span class="sm-value">$74</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg CFV</span><span class="sm-value">$420</span></div>
+          <div class="stage-bar"><div class="stage-bar-fill" style="width:22%"></div></div>
+          <div style="font-size:9px;color:var(--light);margin-top:4px">22% of total base</div>
+        </div>
+        <div class="stage-card" onclick="openStageModal('Loyal')" style="border-top-color:var(--gold)">
+          <div class="stage-name" style="color:var(--gold)">⭐ Loyal</div>
+          <div class="stage-count-big">43K</div>
+          <div class="stage-metric"><span class="sm-label">3+ orders OR CFV &gt;$700</span></div>
+          <div class="stage-metric"><span class="sm-label">Revenue</span><span class="sm-value">$31.2M</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg Cart $</span><span class="sm-value">$112</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg CFV</span><span class="sm-value">$1,240</span></div>
+          <div class="stage-bar"><div class="stage-bar-fill" style="width:5.1%;background:var(--gold)"></div></div>
+          <div style="font-size:9px;color:var(--light);margin-top:4px">5.1% of total base · Highest value</div>
+        </div>
+      </div>
+
+      <div class="info-banner" style="background:linear-gradient(135deg,#6E5426,var(--gold))">
+        <div class="ib-icon">↺</div>
+        <div class="ib-text">
+          <strong>Re-engagement Track</strong>
+          Customers who have made at least one purchase but have not ordered within the active window. Target for re-engagement campaigns.
+        </div>
+      </div>
+
+      <div class="stage-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="stage-card re-engagement" onclick="openStageModal('At Risk')">
+          <div class="stage-name">At Risk</div>
+          <div class="stage-count-big">112K</div>
+          <div class="stage-metric"><span class="sm-label">No purchase 6–12 months</span></div>
+          <div class="stage-metric"><span class="sm-label">Lost Revenue Risk</span><span class="sm-value">$8.3M</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg Last Cart $</span><span class="sm-value">$68</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg CFV</span><span class="sm-value">$380</span></div>
+          <div class="stage-bar"><div class="stage-bar-fill" style="width:13.2%"></div></div>
+          <div style="font-size:9px;color:var(--light);margin-top:4px">13.2% of total base</div>
+        </div>
+        <div class="stage-card re-engagement" onclick="openStageModal('Dormant')">
+          <div class="stage-name">Dormant</div>
+          <div class="stage-count-big">67K</div>
+          <div class="stage-metric"><span class="sm-label">No purchase 12–24 months</span></div>
+          <div class="stage-metric"><span class="sm-label">Lost Revenue Risk</span><span class="sm-value">$4.9M</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg Last Cart $</span><span class="sm-value">$61</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg CFV</span><span class="sm-value">$290</span></div>
+          <div class="stage-bar"><div class="stage-bar-fill" style="width:7.9%"></div></div>
+          <div style="font-size:9px;color:var(--light);margin-top:4px">7.9% of total base</div>
+        </div>
+        <div class="stage-card re-engagement" onclick="openStageModal('Suppressed')">
+          <div class="stage-name">Suppressed</div>
+          <div class="stage-count-big">14K</div>
+          <div class="stage-metric"><span class="sm-label">No purchase 24+ months</span></div>
+          <div class="stage-metric"><span class="sm-label">Lost Revenue Risk</span><span class="sm-value">$1.0M</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg Last Cart $</span><span class="sm-value">$53</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg CFV</span><span class="sm-value">$180</span></div>
+          <div class="stage-bar"><div class="stage-bar-fill" style="width:1.6%"></div></div>
+          <div style="font-size:9px;color:var(--light);margin-top:4px">1.6% of total base</div>
+        </div>
+        <div class="stage-card reactive" onclick="openStageModal('Reactive')">
+          <div class="stage-name">↑ Reactive</div>
+          <div class="stage-count-big">3K</div>
+          <div class="stage-metric"><span class="sm-label">Re-engaged · Monitoring</span></div>
+          <div class="stage-metric"><span class="sm-label">Revenue</span><span class="sm-value">$890K</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg Cart $</span><span class="sm-value">$64</span></div>
+          <div class="stage-metric"><span class="sm-label">Avg CFV</span><span class="sm-value">$210</span></div>
+          <div class="stage-bar"><div class="stage-bar-fill" style="width:0.4%;background:var(--success)"></div></div>
+          <div style="font-size:9px;color:var(--light);margin-top:4px">0.4% of total · Watch for advancement</div>
+        </div>
+      </div>
+
+      <!-- Stage revenue chart -->
+      <div class="chart-card" style="margin-top:16px">
+        <div class="section-header"><div class="section-title">Revenue by Stage (Last 12 Months)</div></div>
+        <div class="chart-wrap" style="height:200px"><canvas id="stageRevenueChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 3 — CUSTOMER MOVEMENT
+    ══════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-movement">
+
+      <div class="chart-row chart-row-2" style="margin-bottom:16px">
+        <div class="chart-card">
+          <div class="section-header">
+            <div class="section-title">Stage Inflows (Last 30 Days)</div>
+            <div style="font-size:10px;color:var(--success);font-weight:600">▲ Customers advancing</div>
+          </div>
+          <table>
+            <tr><th>Moving To</th><th>From</th><th>Customers</th><th>vs Prior Period</th></tr>
+            <tr><td><strong>Known</strong></td><td>Unknown</td><td>4,820</td><td class="trend-up">▲ 12%</td></tr>
+            <tr><td><strong>1st Purchase</strong></td><td>Known</td><td>3,240</td><td class="trend-up">▲ 8%</td></tr>
+            <tr><td><strong>Repeat Purchase</strong></td><td>1st Purchase</td><td>1,870</td><td class="trend-up">▲ 5%</td></tr>
+            <tr><td><strong style="color:var(--gold)">Loyal ⭐</strong></td><td>Repeat Purchase</td><td>420</td><td class="trend-up">▲ 14%</td></tr>
+            <tr><td><strong style="color:var(--success)">Reactive</strong></td><td>At Risk / Dormant</td><td>310</td><td class="trend-up">▲ 22%</td></tr>
+          </table>
+        </div>
+        <div class="chart-card">
+          <div class="section-header">
+            <div class="section-title">Stage Outflows (Last 30 Days)</div>
+            <div style="font-size:10px;color:var(--danger);font-weight:600">▼ Customers declining</div>
+          </div>
+          <table>
+            <tr><th>Moving To</th><th>From</th><th>Customers</th><th>vs Prior Period</th></tr>
+            <tr><td><strong style="color:var(--warning)">At Risk</strong></td><td>1st Purchase</td><td>2,140</td><td class="trend-dn">▼ 3%</td></tr>
+            <tr><td><strong style="color:var(--warning)">At Risk</strong></td><td>Repeat Purchase</td><td>1,580</td><td class="trend-dn">▼ 1%</td></tr>
+            <tr><td><strong style="color:var(--danger)">Dormant</strong></td><td>At Risk</td><td>890</td><td class="trend-dn">▼ 7%</td></tr>
+            <tr><td><strong style="color:var(--danger)">Suppressed</strong></td><td>Dormant</td><td>210</td><td class="trend-dn">▼ 2%</td></tr>
+            <tr><td><strong>Churn Risk</strong></td><td>Known (60+ days)</td><td>3,400</td><td class="trend-dn">▼ 5%</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Stage migration matrix -->
+      <div class="chart-card" style="margin-bottom:16px">
+        <div class="section-header">
+          <div class="section-title">Stage Migration Matrix (Last 90 Days)</div>
+          <div style="font-size:10px;color:var(--mid)">Read: Row = FROM stage · Column = TO stage · Values = Customer count</div>
+        </div>
+        <div class="matrix-wrap">
+          <table class="matrix-table">
+            <tr>
+              <th style="text-align:left;min-width:120px">FROM \ TO</th>
+              <th>Known</th><th>1st Purch.</th><th>Repeat</th><th>Loyal</th><th>At Risk</th><th>Dormant</th><th>Suppressed</th><th>Reactive</th>
+            </tr>
+            <tr>
+              <td class="row-label">Unknown</td>
+              <td><span class="matrix-cell heat-4">14,460</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+            </tr>
+            <tr>
+              <td class="row-label">Known</td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-5">9,720</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+            </tr>
+            <tr>
+              <td class="row-label">1st Purchase</td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-4">5,610</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-3">6,420</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+            </tr>
+            <tr>
+              <td class="row-label">Repeat Purchase</td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-3">1,260</span></td>
+              <td><span class="matrix-cell heat-2">4,740</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+            </tr>
+            <tr>
+              <td class="row-label">At Risk</td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-3">2,670</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-2">930</span></td>
+            </tr>
+            <tr>
+              <td class="row-label">Dormant</td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-0">—</span></td>
+              <td><span class="matrix-cell heat-2">630</span></td>
+              <td><span class="matrix-cell heat-1">390</span></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="section-header"><div class="section-title">Monthly Stage Population Trend</div></div>
+        <div class="chart-wrap" style="height:220px"><canvas id="movementTrendChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 4 — CHANNEL & CAMPAIGN
+    ══════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-channel">
+
+      <div class="chart-row chart-row-2" style="margin-bottom:16px">
+        <div class="chart-card">
+          <div class="section-header"><div class="section-title">New Customer Acquisition by Channel</div></div>
+          <div class="chart-wrap" style="height:200px"><canvas id="channelAcqChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="section-header"><div class="section-title">Stage Distribution — DS vs B2C</div></div>
+          <div class="chart-wrap" style="height:200px"><canvas id="channelStageChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Campaign attribution table -->
+      <div class="chart-card" style="margin-bottom:16px">
+        <div class="section-header">
+          <div class="section-title">Campaign Attribution — Lifecycle Stage Advancement</div>
+          <div style="font-size:10px;color:var(--mid)">Before & After 30-day window per campaign</div>
+        </div>
+        <table>
+          <tr>
+            <th>Campaign</th><th>Channel</th><th>Type</th><th>Customers Targeted</th>
+            <th>Stage Advances</th><th>Advance Rate</th><th>Revenue Lift</th><th>New Customers</th>
+          </tr>
+          <tr>
+            <td><strong>Spring Launch Email Series</strong></td>
+            <td><span class="badge badge-mixed">Email</span></td>
+            <td>Product Launch</td>
+            <td>184,000</td>
+            <td>8,240</td>
+            <td><span style="color:var(--success);font-weight:600">4.5%</span> <div class="mini-bar"><div class="mini-bar-fill" style="width:45%"></div></div></td>
+            <td class="trend-up">$642K</td>
+            <td>2,140</td>
+          </tr>
+          <tr>
+            <td><strong>At Risk Win-Back SMS</strong></td>
+            <td><span class="badge badge-mixed">SMS</span></td>
+            <td>Re-engagement</td>
+            <td>112,000</td>
+            <td>3,920</td>
+            <td><span style="color:var(--success);font-weight:600">3.5%</span> <div class="mini-bar"><div class="mini-bar-fill" style="width:35%"></div></div></td>
+            <td class="trend-up">$267K</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><strong>Paid Social — Meta Spring</strong></td>
+            <td><span class="badge badge-b2c">B2C / Paid</span></td>
+            <td>Acquisition</td>
+            <td>—</td>
+            <td>1,840</td>
+            <td><span style="color:var(--info);font-weight:600">New</span></td>
+            <td class="trend-up">$106K</td>
+            <td>1,840</td>
+          </tr>
+          <tr>
+            <td><strong>Consultant Incentive Push</strong></td>
+            <td><span class="badge badge-ds">DS</span></td>
+            <td>Loyalty Driver</td>
+            <td>43,000</td>
+            <td>610</td>
+            <td><span style="color:var(--success);font-weight:600">1.4%</span> <div class="mini-bar"><div class="mini-bar-fill" style="width:14%"></div></div></td>
+            <td class="trend-up">$88K</td>
+            <td>920</td>
+          </tr>
+          <tr>
+            <td><strong>Google Paid Search — Brand</strong></td>
+            <td><span class="badge badge-b2c">B2C / Paid</span></td>
+            <td>Acquisition</td>
+            <td>—</td>
+            <td>740</td>
+            <td><span style="color:var(--info);font-weight:600">New</span></td>
+            <td class="trend-up">$43K</td>
+            <td>740</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="chart-card">
+        <div class="section-header"><div class="section-title">Stage Advancement Rate by Campaign Type</div></div>
+        <div class="chart-wrap" style="height:200px"><canvas id="campaignTypeChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 5 — CAMPAIGN TRACKING LINK
+    ══════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-tracking">
+
+      <div class="info-banner" style="background:linear-gradient(135deg,#3A3350,#5B6F99)">
+        <div class="ib-icon">⌖</div>
+        <div class="ib-text">
+          <strong>Campaign Tracking Link Analyzer</strong>
+          Paste any UTM tracking link from a paid social, email, or search campaign. The dashboard will pull all customer-level activity attributed to that link — new acquisitions, stage entries, revenue generated, and channel performance.
+        </div>
+      </div>
+
+      <div class="track-input-row">
+        <input class="track-input" id="tracking-url" type="text" placeholder="https://scentsy.com/?utm_source=meta&utm_medium=paid_social&utm_campaign=spring2026&utm_content=ad_variant_a" />
+        <button class="btn btn-primary" onclick="analyzeTracking()">Analyze Link</button>
+        <button class="btn btn-secondary" onclick="loadDemo()">Load Demo</button>
+      </div>
+
+      <div class="track-results" id="tracking-results">
+
+        <div class="chart-card" style="margin-bottom:16px;border-left:4px solid var(--info)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="font-size:12px;font-weight:600;color:var(--charcoal)">Analyzing:</div>
+            <code id="track-url-display" style="font-size:11px;color:var(--info);background:var(--cream);padding:4px 10px;border-radius:4px"></code>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" id="utm-tags"></div>
+        </div>
+
+        <div class="track-kpi-row">
+          <div class="kpi-card">
+            <div class="accent-bar" style="background:var(--info)"></div>
+            <div class="kpi-label">New Customers</div>
+            <div class="kpi-value" style="color:var(--info)" id="tk-new">1,840</div>
+            <div class="kpi-delta up">from this campaign</div>
+            <div class="kpi-sub">Entered at 1st Purchase stage</div>
+          </div>
+          <div class="kpi-card">
+            <div class="accent-bar" style="background:var(--success)"></div>
+            <div class="kpi-label">Revenue Attributed</div>
+            <div class="kpi-value" style="color:var(--success)" id="tk-rev">$106K</div>
+            <div class="kpi-delta up">Direct attribution</div>
+            <div class="kpi-sub">First-touch model</div>
+          </div>
+          <div class="kpi-card">
+            <div class="accent-bar" style="background:var(--rose)"></div>
+            <div class="kpi-label">Avg First Order</div>
+            <div class="kpi-value" style="color:var(--rose)" id="tk-aov">$57.60</div>
+            <div class="kpi-delta down">▼ $9.40 vs organic</div>
+            <div class="kpi-sub">Average order value</div>
+          </div>
+          <div class="kpi-card">
+            <div class="accent-bar" style="background:var(--gold)"></div>
+            <div class="kpi-label">30-Day Retention</div>
+            <div class="kpi-value" style="color:var(--gold)" id="tk-ret">31%</div>
+            <div class="kpi-delta up">▲ Made 2nd purchase</div>
+            <div class="kpi-sub">of new customers acquired</div>
+          </div>
+        </div>
+
+        <div class="chart-row chart-row-2">
+          <div class="chart-card">
+            <div class="section-header"><div class="section-title">Acquisition Timeline (Daily)</div></div>
+            <div class="chart-wrap" style="height:180px"><canvas id="trackTimelineChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="section-header"><div class="section-title">Where Did They Go? (Current Stage)</div></div>
+            <div class="chart-wrap" style="height:180px"><canvas id="trackStageChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="chart-card" style="margin-bottom:16px">
+          <div class="section-header"><div class="section-title">Customer-Level Attribution (Sample — Top 10 by Revenue)</div></div>
+          <table>
+            <tr><th>#</th><th>Customer ID</th><th>Entry Stage</th><th>Current Stage</th><th>Orders</th><th>Revenue</th><th>Last Order</th><th>CFV</th></tr>
+            <tr><td>1</td><td>CUST-88421</td><td>1st Purchase</td><td><strong style="color:var(--gold)">Loyal</strong></td><td>4</td><td>$342</td><td>Mar 18</td><td>$890</td></tr>
+            <tr><td>2</td><td>CUST-91043</td><td>1st Purchase</td><td><strong>Repeat</strong></td><td>2</td><td>$218</td><td>Mar 22</td><td>$540</td></tr>
+            <tr><td>3</td><td>CUST-74820</td><td>1st Purchase</td><td><strong style="color:var(--gold)">Loyal</strong></td><td>3</td><td>$197</td><td>Mar 30</td><td>$720</td></tr>
+            <tr><td>4</td><td>CUST-63291</td><td>1st Purchase</td><td><strong>Repeat</strong></td><td>2</td><td>$164</td><td>Apr 01</td><td>$480</td></tr>
+            <tr><td>5</td><td>CUST-55104</td><td>1st Purchase</td><td><strong>1st Purchase</strong></td><td>1</td><td>$89</td><td>Mar 14</td><td>$89</td></tr>
+            <tr><td>6</td><td>CUST-48830</td><td>1st Purchase</td><td><strong>Repeat</strong></td><td>2</td><td>$143</td><td>Mar 27</td><td>$410</td></tr>
+            <tr><td>7</td><td>CUST-39210</td><td>1st Purchase</td><td><strong>1st Purchase</strong></td><td>1</td><td>$72</td><td>Mar 19</td><td>$72</td></tr>
+            <tr><td>8</td><td>CUST-29834</td><td>1st Purchase</td><td style="color:var(--warning)"><strong>At Risk</strong></td><td>1</td><td>$58</td><td>Feb 28</td><td>$58</td></tr>
+            <tr><td>9</td><td>CUST-18421</td><td>1st Purchase</td><td><strong>Repeat</strong></td><td>2</td><td>$136</td><td>Apr 01</td><td>$390</td></tr>
+            <tr><td>10</td><td>CUST-10932</td><td>1st Purchase</td><td><strong>1st Purchase</strong></td><td>1</td><td>$62</td><td>Mar 21</td><td>$62</td></tr>
+          </table>
+        </div>
+
+        <div class="chart-card" style="background:rgba(181,127,46,.06);border-color:var(--gold)">
+          <div class="section-header"><div class="section-title" style="color:var(--gold)">Campaign ROI Summary</div></div>
+          <div class="chart-row chart-row-3">
+            <div>
+              <div style="font-size:11px;color:var(--mid);margin-bottom:4px">Campaign Spend (estimated)</div>
+              <div style="font-size:20px;font-weight:700;color:var(--charcoal)">$24,800</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--mid);margin-bottom:4px">Revenue Attributed (direct)</div>
+              <div style="font-size:20px;font-weight:700;color:var(--success)">$106,400</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--mid);margin-bottom:4px">Projected LTV (12-month)</div>
+              <div style="font-size:20px;font-weight:700;color:var(--gold)">$218,000</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:24px">
+            <div><span style="font-size:11px;color:var(--mid)">ROAS (direct): </span><strong style="color:var(--success)">4.3x</strong></div>
+            <div><span style="font-size:11px;color:var(--mid)">CAC: </span><strong>$13.48</strong></div>
+            <div><span style="font-size:11px;color:var(--mid)">% advanced to Repeat+: </span><strong style="color:var(--gold)">31%</strong></div>
+            <div><span style="font-size:11px;color:var(--mid)">% still at 1st Purchase: </span><strong>42%</strong></div>
+            <div><span style="font-size:11px;color:var(--mid)">% At Risk / Lapsed: </span><strong style="color:var(--warning)">27%</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════
+         TAB 6 — IT REQUIREMENTS
+    ══════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-itreq">
+
+      <div class="info-banner">
+        <div class="ib-icon">⚙</div>
+        <div class="ib-text">
+          <strong>For IT: How to Build This Dashboard in Amazon QuickSight</strong>
+          This tab documents the exact data models, datasets, calculated fields, filters, and visual types needed to replicate every view in this mockup. Full requirements document available separately.
+        </div>
+      </div>
+
+      <div class="req-section">
+        <h3>1. Data Sources — What Needs to Be Connected</h3>
+        <h4>Data Source 1: Internal Sales Data</h4>
+        <div class="req-item"><span class="req-tag tag-internal">INTERNAL</span> Order Management System export (or direct DB connection if available)</div>
+        <div class="req-item">Required fields: <code>customer_email, order_id, order_date, order_value, item_count, channel (DS/B2C), consultant_id</code></div>
+        <div class="req-item">Grain: One row per order. Join key: <code>customer_email</code></div>
+        <div class="req-item">Refresh: Nightly via S3 export or Redshift/Athena direct connection to QuickSight</div>
+        <h4>Data Source 2: Adobe Experience Platform / Analytics</h4>
+        <div class="req-item"><span class="req-tag tag-adobe">ADOBE</span> Campaign event data export from Adobe Experience Platform</div>
+        <div class="req-item">Required fields: <code>customer_email, campaign_id, campaign_name, channel, touchpoint_date, utm_source, utm_medium, utm_campaign, utm_content</code></div>
+        <div class="req-item">Grain: One row per campaign touchpoint. Join key: <code>customer_email</code></div>
+        <div class="req-item">Export method: Adobe Data Feed → S3 → AWS Glue / Athena → QuickSight SPICE</div>
+        <h4>Data Source 3: CDP</h4>
+        <div class="req-item"><span class="req-tag tag-cdp">CDP</span> Unified customer profile export with behavioral signals and identity-resolved email</div>
+        <div class="req-item">Required fields: <code>customer_email, first_seen_date, profile_created_date, channel_of_acquisition, identity_confidence_score</code></div>
+        <div class="req-item">Use CDP as identity resolution layer — deduplicated email is the universal join key</div>
+      </div>
+
+      <div class="req-section">
+        <h3>2. Data Model — Core Unified Dataset</h3>
+        <div class="code-block">
+-- Master Customer Lifecycle Table (built in Athena or Redshift)<br/>
+SELECT<br/>
+&nbsp;&nbsp;c.customer_email,<br/>
+&nbsp;&nbsp;c.channel_of_acquisition,<br/>
+&nbsp;&nbsp;MIN(o.order_date) AS first_order_date,<br/>
+&nbsp;&nbsp;MAX(o.order_date) AS last_order_date,<br/>
+&nbsp;&nbsp;COUNT(DISTINCT o.order_id) AS order_count_12mo,<br/>
+&nbsp;&nbsp;SUM(o.order_value) AS total_revenue_12mo,<br/>
+&nbsp;&nbsp;AVG(o.order_value) AS avg_order_value,<br/>
+&nbsp;&nbsp;AVG(o.item_count) AS avg_items_per_order,<br/>
+&nbsp;&nbsp;SUM(o.order_value) AS customer_future_value, -- replace with CFV model<br/>
+&nbsp;&nbsp;DATEDIFF('day', MAX(o.order_date), CURRENT_DATE) AS days_since_last_order<br/>
+FROM cdp_profiles c<br/>
+LEFT JOIN orders o ON c.customer_email = o.customer_email<br/>
+&nbsp;&nbsp;AND o.order_date >= DATEADD('year',-1,CURRENT_DATE)<br/>
+GROUP BY c.customer_email, c.channel_of_acquisition
+        </div>
+        <h4>Stage Assignment Logic (Calculated Field in QuickSight or SQL)</h4>
+        <div class="code-block">
+-- Lifecycle Stage (evaluated in priority order)<br/>
+CASE<br/>
+&nbsp;&nbsp;WHEN email IS NULL THEN 'Unknown'<br/>
+&nbsp;&nbsp;WHEN order_count_12mo >= 3 AND cfv > 0 THEN 'Loyal'<br/>
+&nbsp;&nbsp;WHEN order_count_12mo = 2 AND cfv > 700 THEN 'Loyal'<br/>
+&nbsp;&nbsp;WHEN days_since_last_order BETWEEN 181 AND 730 THEN 'Dormant'<br/>
+&nbsp;&nbsp;WHEN days_since_last_order > 730 THEN 'Suppressed'<br/>
+&nbsp;&nbsp;WHEN days_since_last_order BETWEEN 91 AND 180 AND has_prior_purchase THEN 'At Risk'<br/>
+&nbsp;&nbsp;WHEN is_reactive = TRUE THEN 'Reactive'<br/>
+&nbsp;&nbsp;WHEN order_count_12mo = 2 AND cfv &lt; 700 THEN 'Repeat Purchase'<br/>
+&nbsp;&nbsp;WHEN first_order_within_6mo = TRUE THEN '1st Purchase'<br/>
+&nbsp;&nbsp;WHEN email IS NOT NULL THEN 'Known'<br/>
+&nbsp;&nbsp;ELSE 'Unknown'<br/>
+END AS lifecycle_stage
+        </div>
+      </div>
+
+      <div class="req-section">
+        <h3>3. QuickSight Datasets Required</h3>
+        <div class="req-item"><span class="req-tag tag-qs">QUICKSIGHT</span> <strong>DS_CustomerLifecycle</strong> — Master unified table (grain: one row per customer, refreshed nightly via SPICE)</div>
+        <div class="req-item"><span class="req-tag tag-qs">QUICKSIGHT</span> <strong>DS_OrderHistory</strong> — Full order history (grain: one row per order, for trending and cohort analysis)</div>
+        <div class="req-item"><span class="req-tag tag-qs">QUICKSIGHT</span> <strong>DS_CampaignTouchpoints</strong> — Adobe campaign events joined to customer profiles (for attribution views)</div>
+        <div class="req-item"><span class="req-tag tag-qs">QUICKSIGHT</span> <strong>DS_StageHistory</strong> — Snapshot table capturing each customer's stage per day (enables migration matrix and movement tracking)</div>
+        <div class="req-item"><span class="req-tag tag-new">NEW TABLE</span> DS_StageHistory requires a daily snapshot job — recommend AWS Lambda or Glue job at 2AM nightly to write each customer's current stage to a history table</div>
+      </div>
+
+      <div class="req-section">
+        <h3>4. QuickSight Dashboard Sheets (Tabs) Required</h3>
+        <div class="req-item"><strong>Sheet 1 — Executive Overview:</strong> KPI visuals (Count/Sum/Avg aggregations), Stacked bar (stage distribution), Line chart (loyalty trend), Donut (stage mix), Bar (channel split)</div>
+        <div class="req-item"><strong>Sheet 2 — Lifecycle Stages:</strong> 9× KPI group panels (one per stage), Bar chart (revenue by stage). Use QuickSight "Insight" visual type for auto-generated stage narratives</div>
+        <div class="req-item"><strong>Sheet 3 — Customer Movement:</strong> Pivot table (migration matrix using DS_StageHistory), Two tables (inflows/outflows), Line chart (population trend by stage). Requires parameter for date range selection.</div>
+        <div class="req-item"><strong>Sheet 4 — Channel & Campaign:</strong> Clustered bar (DS vs B2C per stage), Line (acquisition trend by channel), Table (campaign attribution using DS_CampaignTouchpoints joined to DS_CustomerLifecycle)</div>
+        <div class="req-item"><strong>Sheet 5 — Tracking Link Analyzer:</strong> QuickSight parameter + filter control for UTM campaign value. All visuals on this sheet filter to customers whose first touchpoint matches the selected UTM. Requires DS_CampaignTouchpoints as source.</div>
+      </div>
+
+      <div class="req-section">
+        <h3>5. Tracking Link Analyzer — Technical Spec</h3>
+        <div class="req-item">User inputs a <code>utm_campaign</code> value via QuickSight filter control (dropdown or text parameter)</div>
+        <div class="req-item">Filter applies to DS_CampaignTouchpoints on <code>utm_campaign</code> field, filtered to first-touch only (<code>touchpoint_rank = 1</code>)</div>
+        <div class="req-item">Joined to DS_CustomerLifecycle on <code>customer_email</code> to show current stage of all customers acquired via that campaign</div>
+        <div class="req-item">Revenue and order metrics pulled from DS_OrderHistory filtered to same customer cohort</div>
+        <div class="req-item">ROI summary requires campaign spend data — recommend adding a <code>DS_CampaignSpend</code> table with <code>campaign_id, spend_amount</code> as a manual upload or CRM feed</div>
+        <div class="code-block">
+-- Tracking Link Attribution Query<br/>
+SELECT<br/>
+&nbsp;&nbsp;o.customer_email,<br/>
+&nbsp;&nbsp;c.utm_campaign, c.utm_source, c.utm_medium,<br/>
+&nbsp;&nbsp;l.lifecycle_stage AS current_stage,<br/>
+&nbsp;&nbsp;COUNT(DISTINCT o.order_id) AS total_orders,<br/>
+&nbsp;&nbsp;SUM(o.order_value) AS total_revenue,<br/>
+&nbsp;&nbsp;MAX(o.order_date) AS last_order_date<br/>
+FROM campaign_touchpoints c<br/>
+JOIN orders o ON c.customer_email = o.customer_email<br/>
+JOIN customer_lifecycle l ON c.customer_email = l.customer_email<br/>
+WHERE c.touchpoint_rank = 1 -- first touch only<br/>
+&nbsp;&nbsp;AND c.utm_campaign = '{{selected_campaign}}' -- QuickSight parameter<br/>
+GROUP BY 1,2,3,4,5
+        </div>
+      </div>
+
+      <div class="req-section">
+        <h3>6. Access, Security & Export</h3>
+        <div class="req-item">Dashboard owners (2): Full edit access — Customer Strategy team</div>
+        <div class="req-item">Marketing team: Read-only access to Sheets 1–4. Sheet 5 (Tracking) read-only with filter controls enabled</div>
+        <div class="req-item">Email export: Configure QuickSight email reports for Executive Overview (weekly, Monday 8AM)</div>
+        <div class="req-item">CSV export: Enable on all table visuals — allows team to export customer email lists per stage for campaign targeting</div>
+        <div class="req-item">Row-level security: Not required for v1 — all users see all data. Review after B2C channel expansion.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── STAGE DETAIL MODAL ───────────────────────────── -->
+<div class="modal-overlay" id="stageModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div id="modal-stage-name" style="font-size:20px;font-weight:700;color:var(--berry);font-family:var(--font-display)"></div>
+        <div id="modal-stage-sub" style="font-size:12px;color:var(--mid);margin-top:4px"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script>
+// ── TAB NAVIGATION ────────────────────────────────────
+const titles = {overview:'Executive Overview',stages:'Lifecycle Stages',movement:'Customer Movement',channel:'Channel & Campaign',tracking:'Campaign Tracking',itreq:'IT Requirements'};
+function switchTab(id, el) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('page-title').textContent = titles[id];
+  if(id==='movement' && !window.movementBuilt) buildMovementChart();
+  if(id==='channel' && !window.channelBuilt) buildChannelCharts();
+}
+
+function setRange(el, v) {
+  document.querySelectorAll('.filter-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function applyChannelFilter(v) {}
+
+// ── CHART DEFAULTS ────────────────────────────────────
+Chart.defaults.font.family = "'Gotham','Helvetica Neue',Helvetica,Arial,sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#6E6259';
+Chart.defaults.plugins.legend.position = 'bottom';
+Chart.defaults.plugins.legend.labels.boxWidth = 10;
+Chart.defaults.plugins.legend.labels.padding = 12;
+
+const stageColors = {
+  'Unknown':'#A59C94','Known':'#A2867F','1st Purchase':'#7A5C86',
+  'Repeat Purchase':'#835F91','Loyal':'#B57F2E',
+  'At Risk':'#C99A54','Dormant':'#9A4A40','Suppressed':'#743A34','Reactive':'#5D6439'
+};
+
+// ── OVERVIEW CHARTS ───────────────────────────────────
+const stageLabels = ['Unknown','Known','1st Purchase','Repeat Purchase','Loyal','At Risk','Dormant','Suppressed','Reactive'];
+const stageCounts = [125000,210000,89000,187000,43000,112000,67000,14000,3000];
+const stageRevs   = [0,0,12.4,38.7,31.2,0,0,0,0.89];
+
+const distData = {count:stageCounts, revenue:stageRevs.map(r=>r*1000000)};
+let distMode = 'count';
+
+const stageDistChart = new Chart(document.getElementById('stageDistChart'),{
+  type:'bar',
+  data:{
+    labels:stageLabels,
+    datasets:[{
+      data:stageCounts,
+      backgroundColor:stageLabels.map(l=>stageColors[l]),
+      borderRadius:4
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{grid:{display:false},ticks:{maxRotation:30}},y:{grid:{color:'#EEEEEB'},ticks:{callback:v=>v>=1000000?'$'+(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'K':v}}}}
+});
+
+function toggleDistView(mode,btn){
+  document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  distMode=mode;
+  stageDistChart.data.datasets[0].data = distData[mode];
+  stageDistChart.update();
+}
+
+new Chart(document.getElementById('stagePieChart'),{
+  type:'doughnut',
+  data:{
+    labels:['Known','1st Purchase','Repeat','Loyal','At Risk','Dormant','Suppressed+Reactive','Unknown'],
+    datasets:[{data:[210,89,187,43,112,67,17,125],backgroundColor:['#A2867F','#7A5C86','#835F91','#B57F2E','#C99A54','#9A4A40','#743A34','#A59C94'],borderWidth:2,borderColor:'#fff'}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:true,position:'right',labels:{boxWidth:8,padding:8,font:{size:10}}}}}
+});
+
+const months = ['Oct','Nov','Dec','Jan','Feb','Mar'];
+new Chart(document.getElementById('loyaltyTrendChart'),{
+  type:'line',
+  data:{
+    labels:months,
+    datasets:[
+      {label:'Loyal',data:[36200,37800,38900,40200,41800,43000],borderColor:'#B57F2E',backgroundColor:'rgba(181,127,46,.1)',fill:true,tension:.4,borderWidth:2.5,pointRadius:3},
+      {label:'Repeat Purchase',data:[178000,180000,182000,184000,185000,187000],borderColor:'#835F91',backgroundColor:'rgba(131,95,145,.06)',fill:true,tension:.4,borderWidth:2.5,pointRadius:3}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},
+    scales:{x:{grid:{display:false}},y:{grid:{color:'#EEEEEB'}}}}
+});
+
+new Chart(document.getElementById('channelTrendChart'),{
+  type:'line',
+  data:{
+    labels:months,
+    datasets:[
+      {label:'DS',data:[68,69,67,68,69,68],borderColor:'#835F91',tension:.4,borderWidth:2,pointRadius:2},
+      {label:'B2C',data:[32,31,33,32,31,32],borderColor:'#5B6F99',tension:.4,borderWidth:2,pointRadius:2}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},
+    scales:{x:{grid:{display:false}},y:{grid:{color:'#EEEEEB'},ticks:{callback:v=>v+'%'},min:0,max:100}}}
+});
+
+// ── STAGES TAB CHART ──────────────────────────────────
+new Chart(document.getElementById('stageRevenueChart'),{
+  type:'bar',
+  data:{
+    labels:['1st Purchase','Repeat Purchase','Loyal','Reactive'],
+    datasets:[
+      {label:'DS',data:[8.9,27.9,24.3,0.64],backgroundColor:'#835F91',borderRadius:4},
+      {label:'B2C',data:[3.5,10.8,6.9,0.25],backgroundColor:'#5B6F99',borderRadius:4}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},
+    scales:{x:{grid:{display:false}},y:{grid:{color:'#EEEEEB'},ticks:{callback:v=>'$'+v+'M'},stacked:false}}}
+});
+
+// ── MOVEMENT TAB ──────────────────────────────────────
+window.movementBuilt=false;
+function buildMovementChart(){
+  window.movementBuilt=true;
+  new Chart(document.getElementById('movementTrendChart'),{
+    type:'line',
+    data:{
+      labels:months,
+      datasets:[
+        {label:'Loyal',data:[36.2,37.8,38.9,40.2,41.8,43],borderColor:'#B57F2E',tension:.4,borderWidth:2.5,pointRadius:3},
+        {label:'Repeat Purchase',data:[178,180,182,184,185,187],borderColor:'#835F91',tension:.4,borderWidth:2,pointRadius:3},
+        {label:'At Risk',data:[118,116,115,114,113,112],borderColor:'#C99A54',tension:.4,borderWidth:2,pointRadius:3},
+        {label:'1st Purchase',data:[82,84,86,87,88,89],borderColor:'#A2867F',tension:.4,borderWidth:2,pointRadius:3}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'#EEEEEB'},ticks:{callback:v=>v+'K'}}}}
+  });
+}
+
+// ── CHANNEL TAB ───────────────────────────────────────
+window.channelBuilt=false;
+function buildChannelCharts(){
+  window.channelBuilt=true;
+  new Chart(document.getElementById('channelAcqChart'),{
+    type:'bar',
+    data:{
+      labels:months,
+      datasets:[
+        {label:'Direct Sales',data:[8400,7800,9200,8600,9100,8800],backgroundColor:'#835F91',borderRadius:4},
+        {label:'B2C',data:[3800,3600,4200,3900,4100,4200],backgroundColor:'#5B6F99',borderRadius:4}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'#EEEEEB'}}}}
+  });
+  new Chart(document.getElementById('channelStageChart'),{
+    type:'bar',
+    data:{
+      labels:['1st Purch.','Repeat','Loyal','At Risk','Reactive'],
+      datasets:[
+        {label:'DS %',data:[65,74,78,70,60],backgroundColor:'rgba(131,95,145,.7)',borderRadius:4},
+        {label:'B2C %',data:[35,26,22,30,40],backgroundColor:'rgba(91,111,153,.7)',borderRadius:4}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'#EEEEEB'},ticks:{callback:v=>v+'%'},max:100}}}
+  });
+  new Chart(document.getElementById('campaignTypeChart'),{
+    type:'bar',
+    data:{
+      labels:['Email','SMS','Paid Social','DS Incentive','Paid Search','Organic'],
+      datasets:[{label:'Stage Advance Rate %',data:[4.5,3.5,2.1,1.4,1.8,3.2],backgroundColor:['#835F91','#A2867F','#5B6F99','#743A34','#5D6439','#A2867F'],borderRadius:6}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'#EEEEEB'},ticks:{callback:v=>v+'%'}}}}
+  });
+}
+
+// ── TRACKING LINK ANALYZER ────────────────────────────
+let trackCharts={};
+function parseUTMs(url){
+  try{
+    const u=new URL(url.startsWith('http')?url:'https://scentsy.com/?'+url.split('?')[1]);
+    const params=['utm_source','utm_medium','utm_campaign','utm_content','utm_term'];
+    return params.filter(p=>u.searchParams.get(p)).map(p=>({key:p.replace('utm_',''),val:u.searchParams.get(p)}));
+  }catch(e){return[]}
+}
+
+function analyzeTracking(){
+  const url=document.getElementById('tracking-url').value.trim();
+  if(!url){alert('Please enter a tracking URL');return;}
+  showTrackingResults(url);
+}
+
+function loadDemo(){
+  document.getElementById('tracking-url').value='https://scentsy.com/?utm_source=meta&utm_medium=paid_social&utm_campaign=spring2026_warmhome&utm_content=carousel_fragrance_v2';
+  showTrackingResults(document.getElementById('tracking-url').value);
+}
+
+function showTrackingResults(url){
+  document.getElementById('track-url-display').textContent=url.length>80?url.substring(0,80)+'…':url;
+  const utms=parseUTMs(url);
+  const tagEl=document.getElementById('utm-tags');
+  tagEl.innerHTML=utms.map(u=>`<span style="background:rgba(91,111,153,.1);color:var(--info);padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600">${u.key}: <span style="font-weight:400">${u.val}</span></span>`).join('') || '<span style="color:var(--mid);font-size:11px">No UTM parameters detected</span>';
+  document.getElementById('tracking-results').classList.add('show');
+
+  // Destroy old charts
+  Object.values(trackCharts).forEach(c=>c.destroy());
+
+  const days=Array.from({length:21},(_,i)=>{const d=new Date(2026,2,11+i);return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})});
+  const acqData=[42,78,120,95,180,210,165,140,88,62,95,110,74,58,42,38,32,28,24,18,12];
+
+  trackCharts.timeline=new Chart(document.getElementById('trackTimelineChart'),{
+    type:'bar',
+    data:{labels:days,datasets:[{label:'New Customers',data:acqData,backgroundColor:'rgba(91,111,153,.7)',borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{maxRotation:45,font:{size:9}}},y:{grid:{color:'#EEEEEB'}}}}
+  });
+
+  trackCharts.stage=new Chart(document.getElementById('trackStageChart'),{
+    type:'doughnut',
+    data:{
+      labels:['1st Purchase (42%)','Repeat Purchase (22%)','Loyal (9%)','At Risk (27%)'],
+      datasets:[{data:[42,22,9,27],backgroundColor:['#7A5C86','#835F91','#B57F2E','#C99A54'],borderWidth:2,borderColor:'#fff'}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'right',labels:{boxWidth:8,padding:6,font:{size:10}}}}}
+  });
+}
+
+// ── STAGE MODAL ───────────────────────────────────────
+const stageData={
+  'Unknown':{sub:'No identifiable data · Count only',count:'125,000',rev:'—',cart:'—',cfv:'—',notes:'These contacts exist in our universe but have not provided an email address and have not made a purchase. Goal: capture email to advance to Known.'},
+  'Known':{sub:'Email on file · No purchase recorded',count:'210,000',rev:'—',cart:'—',cfv:'—',notes:'210K contacts have opted in or been captured via a form but have not yet transacted. Target for first-purchase campaigns — highest volume conversion opportunity.'},
+  '1st Purchase':{sub:'Email + purchase within last 6 months',count:'89,000',rev:'$12.4M',cart:'$58 avg',cfv:'$82 avg',notes:'89K customers have made their first purchase within the past 6 months. Critical window — customers who do not purchase again within 90 days are high risk of moving to At Risk.'},
+  'Repeat Purchase':{sub:'2 orders in 12 months · CFV < $700',count:'187,000',rev:'$38.7M',cart:'$74 avg',cfv:'$420 avg',notes:'Largest revenue-generating non-Loyal segment. 187K customers have demonstrated repeat intent but have not yet hit Loyal thresholds. Priority for loyalty program conversion.'},
+  'Loyal':{sub:'North Star · 3+ orders/12mo OR 2 orders + CFV >$700',count:'43,000',rev:'$31.2M',cart:'$112 avg',cfv:'$1,240 avg',notes:'Highest value segment. 43K customers generating $31M — over 38% of active revenue from 5% of the base. Every program\'s north star: grow this number.'},
+  'At Risk':{sub:'No purchase in 6–12 months · Was active',count:'112,000',rev:'$8.3M risk',cart:'$68 last avg',cfv:'$380 avg',notes:'112K formerly-active customers who are approaching lapse. Highest-priority re-engagement segment. A win-back campaign here has the best expected ROI of any re-engagement activity.'},
+  'Dormant':{sub:'No purchase in 12–24 months',count:'67,000',rev:'$4.9M risk',cart:'$61 last avg',cfv:'$290 avg',notes:'67K customers have been inactive for over a year. Harder to re-engage but still significant revenue opportunity. Targeted re-engagement with product-affinity messaging recommended.'},
+  'Suppressed':{sub:'No purchase in 24+ months',count:'14,000',rev:'$1.0M risk',cart:'$53 last avg',cfv:'$180 avg',notes:'14K deeply lapsed customers. Minimal marketing investment recommended — reserve for periodic broad re-engagement only. Confirm suppression communication rules with Legal.'},
+  'Reactive':{sub:'Re-engaged after At Risk / Dormant / Suppressed',count:'3,000',rev:'$890K',cart:'$64 avg',cfv:'$210 avg',notes:'3K customers who have successfully re-engaged. Monitor closely for advancement to Repeat Purchase. 2nd re-engagement campaign within 30 days of reactive purchase shows strong Repeat conversion.'}
+};
+
+function openStageModal(name){
+  const d=stageData[name];if(!d)return;
+  document.getElementById('modal-stage-name').textContent=name;
+  document.getElementById('modal-stage-sub').textContent=d.sub;
+  document.getElementById('modal-content').innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+      ${[['Customer Count',d.count,'var(--berry)'],['Revenue',d.rev,'var(--info)'],['Avg Cart',d.cart,'var(--rose)'],['Avg CFV',d.cfv,'var(--gold)']].map(([l,v,c])=>`
+      <div style="background:var(--cream);border-radius:8px;padding:14px">
+        <div style="font-size:10px;color:var(--mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">${l}</div>
+        <div style="font-size:22px;font-weight:700;color:${c}">${v}</div>
+      </div>`).join('')}
+    </div>
+    <div style="background:rgba(131,95,145,.05);border-radius:8px;padding:16px;margin-bottom:16px;border-left:3px solid var(--berry)">
+      <div style="font-size:12px;color:var(--charcoal);line-height:1.6">${d.notes}</div>
+    </div>
+    <div style="font-size:11px;color:var(--mid);margin-bottom:8px;font-weight:600">CHANNEL SPLIT FOR THIS STAGE</div>
+    <div class="channel-bar"><div class="ch-ds" style="width:70%">DS 70%</div><div class="ch-b2c" style="width:30%">B2C 30%</div></div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+      <button class="btn btn-primary" onclick="closeModal()">Export Contact List ↓</button>
+    </div>
+  `;
+  document.getElementById('stageModal').classList.add('open');
+}
+function closeModal(){document.getElementById('stageModal').classList.remove('open')}
+document.getElementById('stageModal').addEventListener('click',function(e){if(e.target===this)closeModal()});
+</script>
+</body>
+</html>
